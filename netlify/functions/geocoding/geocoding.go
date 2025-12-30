@@ -85,8 +85,7 @@ func geocoding(ctx context.Context, query string) (string, error) {
 	return "", err
 }
 
-func handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	ctx := context.Background()
+func handler(ctx context.Context, request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	logger.InfoContext(ctx, "received request", slog.String("method", request.HTTPMethod), slog.String("path", request.Path))
 
 	origin := request.Headers["Origin"]
