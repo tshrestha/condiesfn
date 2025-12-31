@@ -32,7 +32,7 @@ var (
 	})
 	corsHeaders = map[string]string{
 		"Access-Control-Allow-Origin":  "http://localhost:3000",
-		"Access-Control-Allow-Headers": "*",
+		"Access-Control-Allow-Headers": "X-Nawa-Token,x-nawa-token",
 		"Access-Control-Allow-Methods": "*",
 	}
 	logger           = slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -50,7 +50,7 @@ const (
 func createResponse(req *events.APIGatewayProxyRequest, statusCode int, body string) *events.APIGatewayProxyResponse {
 	origin := req.Headers["Origin"]
 	if origin == localhostOrigin || origin == githubOrigin {
-		corsHeaders["Access-Control-Allow-Origin"] = req.Headers["Origin"]
+		corsHeaders["Access-Control-Allow-Origin"] = origin
 	}
 
 	return &events.APIGatewayProxyResponse{
@@ -146,6 +146,10 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (*event
 	logger.InfoContext(ctx, "received request", slog.String("method", request.HTTPMethod), slog.String("path", request.Path))
 
 	origin := request.Headers["Origin"]
+	token := request.Headers["x-nawa-token"]
+	if token != "" {
+		logger.Info("token header is present", slog.String("token", token))
+	}
 	//tokenHeader := request.Headers["X-Nawa-Token"]
 	//if tokenHeader != nawaToken || (origin != localhostOrigin && origin != githubOrigin) {
 	//	return &events.APIGatewayProxyResponse{
@@ -153,7 +157,8 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (*event
 	//	}, nil
 	//}
 
-	if request.HTTPMethod == http.MethodOptions && origin == localhostOrigin || origin == githubOrigin {
+	if request.HTTPMethod == http.MethodOptions {
+		logger.Info("received OPTIONS request", slog.String("origin", origin))
 		return createResponse(&request, http.StatusOK, ""), nil
 	}
 
