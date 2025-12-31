@@ -168,9 +168,13 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (*event
 			logger.Info("token header is present", slog.String("token", token))
 
 			if validatedClientToken == "" {
-				decoded, _ := hex.DecodeString(token)
-				decrypted, err := internal.Decrypt([]byte(nawaKey), decoded)
+				decoded, err := hex.DecodeString(token)
+				if err != nil {
+					logger.ErrorContext(ctx, "failed to decode client token", slog.Any("error", err))
+					return createResponse(&request, http.StatusInternalServerError, ""), nil
+				}
 
+				decrypted, err := internal.Decrypt([]byte(nawaKey), decoded)
 				if err != nil {
 					logger.Error("failed to decrypt token", slog.Any("error", err))
 					return createResponse(&request, http.StatusInternalServerError, ""), nil
