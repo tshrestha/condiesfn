@@ -145,7 +145,7 @@ func reverseSearch(ctx context.Context, req *events.APIGatewayProxyRequest, lat,
 func handler(ctx context.Context, request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	logger.InfoContext(ctx, "received request", slog.String("method", request.HTTPMethod), slog.String("path", request.Path))
 
-	origin := request.Headers["Origin"]
+	origin := request.Headers["origin"]
 	token := request.Headers["x-nawa-token"]
 	if token != "" {
 		logger.Info("token header is present", slog.String("token", token))
