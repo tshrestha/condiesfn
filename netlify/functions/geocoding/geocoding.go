@@ -31,7 +31,7 @@ var (
 		DB:       0,
 	})
 	corsHeaders = map[string]string{
-		"Access-Control-Allow-Origin":  "http://localhost:3000",
+		"Access-Control-Allow-Origin":  "",
 		"Access-Control-Allow-Headers": "X-Nawa-Token,x-nawa-token",
 		"Access-Control-Allow-Methods": "*",
 	}
@@ -40,6 +40,7 @@ var (
 	forwardSearchURL = searchURL + "/forward?country=us&types=place&access_token=" + os.Getenv("mapbox_access_token")
 	reverseSearchURL = searchURL + "/reverse?country=us&types=place&access_token=" + os.Getenv("mapbox_access_token")
 	nawaToken        = os.Getenv("nawa_token")
+	nawaKey          = os.Getenv("nawa_key")
 )
 
 const (
@@ -48,7 +49,7 @@ const (
 )
 
 func createResponse(req *events.APIGatewayProxyRequest, statusCode int, body string) *events.APIGatewayProxyResponse {
-	origin := req.Headers["Origin"]
+	origin := req.Headers["origin"]
 	if origin == localhostOrigin || origin == githubOrigin {
 		corsHeaders["Access-Control-Allow-Origin"] = origin
 	}
