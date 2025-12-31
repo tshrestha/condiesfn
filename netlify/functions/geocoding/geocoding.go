@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log/slog"
+	"nawa-functions/internal"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,12 +38,14 @@ var (
 		"Access-Control-Allow-Headers": "X-Nawa-Token,x-nawa-token",
 		"Access-Control-Allow-Methods": "*",
 	}
-	logger           = slog.New(slog.NewTextHandler(os.Stdout, nil))
-	searchURL        = "https://api.mapbox.com/search/geocode/v6"
-	forwardSearchURL = searchURL + "/forward?country=us&types=place&access_token=" + os.Getenv("mapbox_access_token")
-	reverseSearchURL = searchURL + "/reverse?country=us&types=place&access_token=" + os.Getenv("mapbox_access_token")
-	nawaToken        = os.Getenv("nawa_token")
-	nawaKey          = os.Getenv("nawa_key")
+	logger               = slog.New(slog.NewTextHandler(os.Stdout, nil))
+	searchURL            = "https://api.mapbox.com/search/geocode/v6"
+	forwardSearchURL     = searchURL + "/forward?country=us&types=place&access_token=" + os.Getenv("mapbox_access_token")
+	reverseSearchURL     = searchURL + "/reverse?country=us&types=place&access_token=" + os.Getenv("mapbox_access_token")
+	nawaToken            = os.Getenv("nawa_token")
+	nawaKey              = os.Getenv("nawa_key")
+	requireToken, _      = strconv.ParseBool(os.Getenv("require_token"))
+	validatedClientToken = ""
 )
 
 const (
@@ -147,23 +152,42 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (*event
 	logger.InfoContext(ctx, "received request", slog.String("method", request.HTTPMethod), slog.String("path", request.Path))
 
 	origin := request.Headers["origin"]
-	token := request.Headers["x-nawa-token"]
-	if token != "" {
-		logger.Info("token header is present", slog.String("token", token))
-	}
-	//tokenHeader := request.Headers["X-Nawa-Token"]
-	//if tokenHeader != nawaToken || (origin != localhostOrigin && origin != githubOrigin) {
-	//	return &events.APIGatewayProxyResponse{
-	//		StatusCode: http.StatusUnauthorized,
-	//	}, nil
-	//}
-
 	if request.HTTPMethod == http.MethodOptions {
 		logger.Info("received OPTIONS request", slog.String("origin", origin))
 		return createResponse(&request, http.StatusOK, ""), nil
 	}
 
 	if request.HTTPMethod == http.MethodGet {
+		if requireToken {
+			logger.Info("client token is required")
+
+			token := request.Headers["x-nawa-token"]
+			if token == "" {
+				return createResponse(&request, http.StatusUnauthorized, "invalid token"), nil
+			}
+			logger.Info("token header is present", slog.String("token", token))
+
+			if validatedClientToken == "" {
+				decoded, _ := hex.DecodeString(token)
+				decrypted, err := internal.Decrypt([]byte(nawaKey), decoded)
+
+				if err != nil {
+					logger.Error("failed to decrypt token", slog.Any("error", err))
+					return createResponse(&request, http.StatusInternalServerError, ""), nil
+				}
+
+				if string(decrypted) != nawaToken {
+					logger.Error("decrypted client token does not match server token")
+					return createResponse(&request, http.StatusUnauthorized, "invalid token"), nil
+				}
+
+				logger.Info("client token validated successfully")
+				validatedClientToken = token
+			} else {
+				logger.Info("validated client token exists")
+			}
+		}
+
 		pathSegments := strings.Split(request.Path, "/")
 		requestType := pathSegments[len(pathSegments)-1]
 
