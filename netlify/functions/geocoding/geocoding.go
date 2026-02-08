@@ -39,8 +39,8 @@ var (
 	}
 	logger               = slog.New(slog.NewTextHandler(os.Stdout, nil))
 	searchURL            = "https://api.mapbox.com/search/geocode/v6"
-	forwardSearchURL     = searchURL + "/forward?country=us&types=place&access_token=" + os.Getenv("mapbox_access_token")
-	reverseSearchURL     = searchURL + "/reverse?country=us&types=place&access_token=" + os.Getenv("mapbox_access_token")
+	forwardSearchURL     = searchURL + "/forward?country=us&access_token=" + os.Getenv("mapbox_access_token")
+	reverseSearchURL     = searchURL + "/reverse?country=us&access_token=" + os.Getenv("mapbox_access_token")
 	nawaToken            = os.Getenv("nawa_token")
 	nawaKey              = os.Getenv("nawa_key")
 	requireToken, _      = strconv.ParseBool(os.Getenv("require_token"))
